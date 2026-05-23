@@ -1,7 +1,7 @@
 # Agriculture Database API
 
 FastAPI-based REST API for the Agriculture DB Data Scientist Assessment.  
-Connects to a MySQL database, processes data using pandas, and exposes 8 analytical endpoints across 2 reports.
+Connects to a MySQL database, processes data using pandas & exposes 8 analytical endpoints across 2 reports.
 
 ---
 
