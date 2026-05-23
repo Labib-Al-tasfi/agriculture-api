@@ -22,15 +22,15 @@ Connects to a MySQL database, processes data using pandas, and exposes 8 analyti
 
 ```
 agriculture_api/
-├── main.py                  # FastAPI app entry point
-├── database.py              # DB connection & data loading
-├── validators.py            # Filter validation logic
+├── main.py                  #FastAPI app entry point
+├── database.py              #DB connection & data loading
+├── validators.py            #Filter validation logic
 ├── routers/
-│   ├── farms.py             # Endpoints 1–4 (Farm Performance)
-│   └── crops_markets.py     # Endpoints 5–8 (Crop & Market Intelligence)
+│   ├── farms.py             #Endpoints 1–4 (Farm Performance)
+│   └── crops_markets.py     #Endpoints 5–8 (Crop & Market Intelligence)
 ├── requirements.txt
-├── .env.example             # Template for credentials (safe to share)
-├── .env                     # Your actual credentials (DO NOT commit)
+├── .env.example             #Template for credentials (Safe for sharing)
+├── .env                     #Actual credentials (Don't commit)
 ├── .gitignore
 └── Dockerfile
 ```
