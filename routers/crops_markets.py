@@ -1,13 +1,10 @@
-"""
-routers/crops_markets.py
-------------------------
+""" routers/crops_markets.py
 Report 2 — Crop & Market Intelligence Report
 Endpoints:
   5. GET /crops/yield-efficiency   → Actual vs benchmark yield per crop
   6. GET /crops/seasonal-trend     → Revenue & quantity by season/year
   7. GET /markets/price-comparison → Price comparison across market channels
-  8. GET /crops/quality-breakdown  → Grade distribution + pesticide residue
-"""
+  8. GET /crops/quality-breakdown  → Grade distribution + pesticide residue """
 
 from fastapi import APIRouter, Query, HTTPException
 from database import get_harvest_df
@@ -16,40 +13,35 @@ import pandas as pd
 
 router = APIRouter(tags=["Crop & Market Intelligence"])
 
-
-# ══════════════════════════════════════════════════════════════════════
-# ENDPOINT 5 — GET /crops/yield-efficiency
-# ══════════════════════════════════════════════════════════════════════
+#ENDPOINT 5 — GET /crops/yield-efficiency
 
 @router.get("/crops/yield-efficiency", summary="Crop Yield Efficiency vs Benchmark")
 def crop_yield_efficiency(
-    crop_category:     str | None = Query(default=None, description="Cereal | Vegetable | Fruit ..."),
-    season:            str | None = Query(default=None, description="Spring | Summer | Autumn | Winter"),
-    year:              int | None = Query(default=None, description="2022 | 2023 | 2024"),
-    region:            str | None = Query(default=None, description="Filter by region"),
+    crop_category: str | None = Query(default=None, description="Cereal | Vegetable | Fruit ..."),
+    season: str | None = Query(default=None, description="Spring | Summer | Autumn | Winter"),
+    year: int | None = Query(default=None, description="2022 | 2023 | 2024"),
+    region: str | None = Query(default=None, description="Filter by region"),
     water_requirement: str | None = Query(default=None, description="Low | Medium | High"),
 ):
-    """
-    Compares actual yield per hectare against the national benchmark for each crop.
-    efficiency_pct > 100 = outperforming national average.
-    """
+    """ Compares actual yield per hectare against the national benchmark for each crop.
+    efficiency_pct > 100 = outperforming national average. """
     validate_filters(
         crop_category=crop_category, season=season, year=year,
         region=region, water_requirement=water_requirement
     )
 
-    df = get_harvest_df()
+    df= get_harvest_df()
 
     if crop_category:
-        df = df[df["crop_category"] == crop_category]
+        df= df[df["crop_category"] == crop_category]
     if season:
-        df = df[df["season"] == season]
+        df= df[df["season"] == season]
     if year:
-        df = df[df["year"] == year]
+        df= df[df["year"] == year]
     if region:
-        df = df[df["region"] == region]
+        df= df[df["region"] == region]
     if water_requirement:
-        df = df[df["water_requirement"] == water_requirement]
+        df= df[df["water_requirement"] == water_requirement]
 
     if df.empty:
         return {
@@ -60,7 +52,7 @@ def crop_yield_efficiency(
             "data": []
         }
 
-    # Aggregate per crop — average actual yield, benchmark is fixed per crop
+    #Aggregate per crop — average actual yield, benchmark is fixed per crop
     grouped = df.groupby(
         ["crop_name", "crop_category", "growing_season", "yield_benchmark_ton_per_ha"]
     ).agg(
@@ -68,7 +60,7 @@ def crop_yield_efficiency(
         total_area_planted = ("area_planted_ha", "sum"),
     ).reset_index()
 
-    # Compute efficiency %
+    #Compute efficiency %
     grouped["efficiency_pct"] = (
         grouped["actual_avg_yield"] / grouped["yield_benchmark_ton_per_ha"] * 100
     ).round(1)
@@ -94,9 +86,7 @@ def crop_yield_efficiency(
     }
 
 
-# ══════════════════════════════════════════════════════════════════════
 # ENDPOINT 6 — GET /crops/seasonal-trend
-# ══════════════════════════════════════════════════════════════════════
 
 @router.get("/crops/seasonal-trend", summary="Seasonal Revenue Trend by Crop")
 def seasonal_trend(
@@ -106,10 +96,8 @@ def seasonal_trend(
     quarter:       int | None = Query(default=None, description="1 | 2 | 3 | 4"),
     market_type:   str | None = Query(default=None, description="Local | Wholesale | Export ..."),
 ):
-    """
-    Shows how revenue and quantity sold changes across seasons and years
-    for each crop. Useful for finding the most profitable seasons.
-    """
+    """ Shows how revenue and quantity sold changes across seasons and years
+    for each crop. Useful for finding the most profitable seasons. """
     validate_filters(
         crop_category=crop_category, year=year,
         quarter=quarter, market_type=market_type
@@ -118,15 +106,15 @@ def seasonal_trend(
     df = get_harvest_df()
 
     if crop_name:
-        df = df[df["crop_name"].str.lower() == crop_name.lower()]
+        df= df[df["crop_name"].str.lower() == crop_name.lower()]
     if crop_category:
-        df = df[df["crop_category"] == crop_category]
+        df= df[df["crop_category"] == crop_category]
     if year:
-        df = df[df["year"] == year]
+        df= df[df["year"] == year]
     if quarter:
-        df = df[df["quarter"] == quarter]
+        df= df[df["quarter"] == quarter]
     if market_type:
-        df = df[df["market_type"] == market_type]
+        df= df[df["market_type"] == market_type]
 
     if df.empty:
         return {
@@ -137,32 +125,31 @@ def seasonal_trend(
             "trend": []
         }
 
-    # Aggregate per crop + year + quarter + season
+    #Aggregate per crop + year + quarter + season
     grouped = df.groupby(["crop_name", "year", "quarter", "season"]).agg(
-        total_quantity_sold_ton = ("quantity_sold_ton", "sum"),
-        total_revenue_bdt       = ("revenue_bdt", "sum"),
-        avg_price_per_ton_bdt   = ("price_per_ton_bdt", "mean"),
-        num_harvests            = ("harvest_quantity_ton", "count"),
+        total_quantity_sold_ton= ("quantity_sold_ton", "sum"),
+        total_revenue_bdt= ("revenue_bdt", "sum"),
+        avg_price_per_ton_bdt= ("price_per_ton_bdt", "mean"),
+        num_harvests= ("harvest_quantity_ton", "count"),
     ).reset_index()
 
     trend = []
     for _, row in grouped.iterrows():
         trend.append({
-            "crop_name":              row["crop_name"],
-            "year":                   int(row["year"]),
-            "quarter":                int(row["quarter"]),
-            "season":                 row["season"],
+            "crop_name": row["crop_name"],
+            "year": int(row["year"]),
+            "quarter": int(row["quarter"]),
+            "season": row["season"],
             "total_quantity_sold_ton": round(row["total_quantity_sold_ton"], 1),
-            "total_revenue_bdt":      round(row["total_revenue_bdt"], 2),
-            "avg_price_per_ton_bdt":  round(row["avg_price_per_ton_bdt"], 0),
-            "num_harvests":           int(row["num_harvests"]),
+            "total_revenue_bdt": round(row["total_revenue_bdt"], 2),
+            "avg_price_per_ton_bdt": round(row["avg_price_per_ton_bdt"], 0),
+            "num_harvests": int(row["num_harvests"]),
         })
 
     return {
         "filters_applied": build_filters_applied(
             crop_name=crop_name, crop_category=crop_category,
-            year=year, quarter=quarter, market_type=market_type
-        ),
+            year=year, quarter=quarter, market_type=market_type),
         "trend": trend,
     }
 
@@ -246,10 +233,7 @@ def market_price_comparison(
         "comparison": comparison,
     }
 
-
-# ══════════════════════════════════════════════════════════════════════
-# ENDPOINT 8 — GET /crops/quality-breakdown
-# ══════════════════════════════════════════════════════════════════════
+#ENDPOINT 8 — GET /crops/quality-breakdown
 
 @router.get("/crops/quality-breakdown", summary="Crop Quality Grade Distribution")
 def quality_breakdown(
@@ -260,10 +244,9 @@ def quality_breakdown(
     market_type:       str | None = Query(default=None, description="Local | Wholesale | Export ..."),
     pesticide_residue: str | None = Query(default=None, description="None | Trace | Low | High"),
 ):
-    """
-    Shows distribution of quality grades (A, B, C, D) for crops.
-    Also shows pesticide residue breakdown alongside quality grades.
-    """
+    """ Shows distribution of quality grades (A, B, C, D) for crops.
+    Also shows pesticide residue breakdown alongside quality grades. """
+  
     validate_filters(
         crop_category=crop_category, year=year, region=region,
         market_type=market_type, pesticide_residue=pesticide_residue
@@ -272,22 +255,22 @@ def quality_breakdown(
     df = get_harvest_df()
 
     if crop_id is not None:
-        df = df[df["crop_id"] == crop_id]
+        df= df[df["crop_id"] == crop_id]
         if df.empty:
             raise HTTPException(
                 status_code=404,
                 detail={"error": f"No data found for crop_id={crop_id}"}
             )
     if crop_category:
-        df = df[df["crop_category"] == crop_category]
+        df= df[df["crop_category"] == crop_category]
     if year:
-        df = df[df["year"] == year]
+        df= df[df["year"] == year]
     if region:
-        df = df[df["region"] == region]
+        df= df[df["region"] == region]
     if market_type:
-        df = df[df["market_type"] == market_type]
+        df= df[df["market_type"] == market_type]
     if pesticide_residue:
-        df = df[df["pesticide_residue"] == pesticide_residue]
+        df= df[df["pesticide_residue"] == pesticide_residue]
 
     if df.empty:
         return {
@@ -302,25 +285,27 @@ def quality_breakdown(
 
     total = len(df)
 
-    # ── Grade distribution ──────────────────────────────────────────
+    #Grade distribution
+  
     grade_dist = {}
     for grade in ["A", "B", "C", "D"]:
-        subset = df[df["quality_grade"] == grade]
-        count  = len(subset)
-        pct    = round(count / total * 100, 1) if total > 0 else 0
-        avg_rev = round(subset["revenue_bdt"].mean(), 0) if count > 0 else 0
-        grade_dist[grade] = {
-            "count":           count,
-            "pct":             pct,
+        subset= df[df["quality_grade"] == grade]
+        count= len(subset)
+        pct= round(count / total * 100, 1) if total > 0 else 0
+        avg_rev= round(subset["revenue_bdt"].mean(), 0) if count > 0 else 0
+        grade_dist[grade]= {
+            "count": count,
+            "pct": pct,
             "avg_revenue_bdt": int(avg_rev),
         }
 
-    # ── Pesticide residue distribution ─────────────────────────────
+    #Pesticide residue distribution 
+  
     residue_dist = {}
     for level in ["None", "Trace", "Low", "High"]:
-        subset = df[df["pesticide_residue"] == level]
-        count  = len(subset)
-        pct    = round(count / total * 100, 1) if total > 0 else 0
+        subset= df[df["pesticide_residue"] == level]
+        count= len(subset)
+        pct= round(count / total * 100, 1) if total > 0 else 0
         residue_dist[level] = {"count": count, "pct": pct}
 
     return {
@@ -328,7 +313,7 @@ def quality_breakdown(
             crop_id=crop_id, crop_category=crop_category, year=year,
             region=region, market_type=market_type, pesticide_residue=pesticide_residue
         ),
-        "total_records":              total,
-        "grade_distribution":         grade_dist,
+        "total_records": total,
+        "grade_distribution": grade_dist,
         "pesticide_residue_breakdown": residue_dist,
     }
